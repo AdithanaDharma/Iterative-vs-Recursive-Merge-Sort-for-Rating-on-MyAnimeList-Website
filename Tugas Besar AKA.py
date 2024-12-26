@@ -140,7 +140,6 @@ def print_performance_table(n_values, iterative_times, recursive_times):
     print(table)
 
 def main():
-    # URL RAW file dari GitHub
     linkGithub = 'https://raw.githubusercontent.com/AdithanaDharma/Iterative-vs-Recursive-Merge-Sort-for-Rating-on-MyAnimeList-Website/refs/heads/main/Data%20Rating%20MAL.txt'
 
     n_values = []
@@ -150,14 +149,12 @@ def main():
     n = 1
     while n <= 4440:
         try:
-            # Baca data
             data = bacaData(linkGithub, n)
 
             if not data:
                 print("Gagal membaca data.")
                 break
 
-            # Profiling dan ukur waktu
             iterative_time = profile_sorting_algorithm(
                 mergeShortIteratif,
                 data
@@ -168,26 +165,22 @@ def main():
                 data
             )
 
-            # Tambahkan ke daftar
             n_values.append(n)
             iterative_times.append(iterative_time)
             recursive_times.append(recursive_time)
 
-            # Cetak tabel performa
             print_performance_table(
                 n_values,
                 iterative_times,
                 recursive_times
             )
 
-            # Update grafik
             update_graph(
                 n_values,
                 iterative_times,
                 recursive_times
             )
 
-            # Naikkan ukuran input
             n += 1100
 
         except Exception as e:
