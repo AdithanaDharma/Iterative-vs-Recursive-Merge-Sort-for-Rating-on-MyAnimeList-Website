@@ -1,33 +1,41 @@
+
 import time 
 import matplotlib.pyplot as plt 
-from prettytable import PrettyTable 
+from prettytable import PrettyTable
 import requests 
 import cProfile 
+import tracemalloc 
 
-def bacaData(linkGithub, num_data):
+nilai_N = []
+waktu_iteratif = []
+waktu_rekursif = []
+memori_iteratif = []
+memori_rekursif = []
+
+def baca_data(link_github, jumlah_data):
     try:
-        response = requests.get(linkGithub)
+        response = requests.get(link_github)
         response.raise_for_status()
 
         data = response.text.strip().split(';')
 
-        dataBersih = []
+        data_bersih = []
 
         for item in data:
             try:
-                cleaned_item = item.strip() 
-                if cleaned_item:
-                    dataBersih.append(float(cleaned_item)) 
+                item_bersih = item.strip() 
+                if item_bersih:
+                    data_bersih.append(float(item_bersih)) 
             except ValueError:
                 continue 
 
-        return dataBersih[:num_data] 
+        return data_bersih[:jumlah_data] 
 
-    except requests.RequestException as e:
+    except requests.RequestException as e: 
         print(f"Error mengambil data dari GitHub: {e}")
         return []
 
-def mergeShortIteratif(arr):
+def merge_sort_Iteratif(arr):
     def merge(arr, left, mid, right):
         left_half = arr[left:mid+1]
         right_half = arr[mid+1:right+1]
@@ -68,17 +76,17 @@ def mergeShortIteratif(arr):
 
     return arr
 
-def mergeShortRekursif(arr):
+def merge_sort_rekursif(arr):
     if len(arr) <= 1:
         return arr
 
     mid = len(arr) // 2
-    left = mergeShortRekursif(arr[:mid])
-    right = mergeShortRekursif(arr[mid:])
+    left = merge_sort_rekursif(arr[:mid])
+    right = merge_sort_rekursif(arr[mid:])
 
-    return merge_recursive(left, right)
+    return merge_rekursif(left, right)
 
-def merge_recursive(left, right):
+def merge_rekursif(left, right):
     result = []
     i = j = 0
 
@@ -95,90 +103,109 @@ def merge_recursive(left, right):
 
     return result
 
-def profile_sorting_algorithm(func, data):
+def profile_sorting_algorithm(func, data): 
+    tracemalloc.start()
     profiler = cProfile.Profile()
     profiler.enable()
 
-    start_time = time.time()
+    waktu_mulai = time.time()
     func(data.copy())
-    end_time = time.time()
+    waktu_selesai = time.time()
 
     profiler.disable()
 
-    return end_time - start_time
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
 
-def update_graph(n_values, iterative_times, recursive_times):
+    return waktu_selesai - waktu_mulai, peak/1024/1024
+
+def update_graph(nilai_N, waktu_iteratif, waktu_rekursif): 
     plt.figure(figsize=(12, 6))
     plt.subplot(1, 2, 1)
-    plt.plot(n_values, iterative_times, label='Iterative', marker='o')
-    plt.plot(n_values, recursive_times, label='Recursive', marker='x')
-    plt.title('Merge Sort: Execution Time')
+    plt.plot(nilai_N, waktu_iteratif, label='Iteratif', marker='o')
+    plt.plot(nilai_N, waktu_rekursif, label='Rekursif', marker='o')
+    plt.title('Merge Sort: Waktu Eksekusi')
     plt.xlabel('Input Size')
-    plt.ylabel('Time (seconds)')
+    plt.ylabel('Waktu (detik)')
     plt.legend()
     plt.grid(True)
+
+    plt.subplot(1, 2, 2)
+    plt.plot(nilai_N, memori_iteratif, label='Memori Iteratif', marker='o')
+    plt.plot(nilai_N, memori_rekursif, label='Memori Rekursif', marker='o')
+    plt.title('Merge Sort: Penggunaan Memori')
+    plt.xlabel('Input Size')
+    plt.ylabel('Memori (MB)')
+    plt.legend()
+    plt.grid(True)
+
     plt.tight_layout()
     plt.show()
 
-def print_performance_table(n_values, iterative_times, recursive_times):
+def print_performance_table(nilai_N, waktu_iteratif, waktu_rekursif):
     table = PrettyTable()
     table.field_names = [
         "Input Size",
-        "Iterative Time (detik)",
-        "Recursive Time (detik)",
-        "Selisih"
+        "Iteratif Time (detik)",
+        "Rekursif Time (detik)",
+        "Selisih Waktu (detik)",
+        "memori iteratif (MB)",
+        "memori rekursif (MB)",
+        "Selisih Memori (MB)"
     ]
 
-    for n, iter_time, rec_time in zip(n_values, iterative_times, recursive_times):
+    for n, waktu_iter, waktu_rek, iter_mem, rek_mem in zip(
+        nilai_N, waktu_iteratif, waktu_rekursif,memori_iteratif, memori_rekursif
+    ):
         table.add_row([
             n,
-            f"{iter_time:.6f}",
-            f"{rec_time:.6f}",
-            f"{abs(iter_time - rec_time):.6f}"
+            f"{waktu_iter:.6f}",
+            f"{waktu_rek:.6f}",
+            f"{abs(waktu_iter - waktu_rek):.6f}",
+            f"{iter_mem:.2f}",
+            f"{rek_mem:.2f}",
+            f"{abs(iter_mem - rek_mem):.2f}"
         ])
 
     print(table)
 
 def main():
-    linkGithub = 'https://raw.githubusercontent.com/AdithanaDharma/Iterative-vs-Recursive-Merge-Sort-for-Rating-on-MyAnimeList-Website/refs/heads/main/Data%20Rating%20MAL.txt'
-
-    n_values = []
-    iterative_times = []
-    recursive_times = []
+    link_github = 'https://raw.githubusercontent.com/AdithanaDharma/Iterative-vs-Recursive-Merge-Sort-for-Rating-on-MyAnimeList-Website/refs/heads/main/Data%20Rating%20MAL.txt'
 
     n = 1
     while n <= 4440:
         try:
-            data = bacaData(linkGithub, n)
+            data = baca_data(link_github, n)
 
             if not data:
                 print("Gagal membaca data.")
                 break
 
-            iterative_time = profile_sorting_algorithm(
-                mergeShortIteratif,
+            iterative_time, iter_mem = profile_sorting_algorithm(
+                merge_sort_Iteratif,
+                data
+            )
+            recursive_time, rek_mem = profile_sorting_algorithm(
+                merge_sort_rekursif,
                 data
             )
 
-            recursive_time = profile_sorting_algorithm(
-                mergeShortRekursif,
-                data
-            )
-
-            n_values.append(n)
-            iterative_times.append(iterative_time)
-            recursive_times.append(recursive_time)
+            nilai_N.append(n)
+            waktu_iteratif.append(iterative_time)
+            waktu_rekursif.append(recursive_time)
+            memori_iteratif.append(iter_mem)
+            memori_rekursif.append(rek_mem)
 
             print_performance_table(
-                n_values,
-                iterative_times,
-                recursive_times
+                nilai_N,
+                waktu_iteratif,
+                waktu_rekursif
             )
 
             update_graph(
-                n_values,
-                iterative_times,
-                recursive_times
+                nilai_N,
+                waktu_iteratif,
+                waktu_rekursif
             )
 
             n += 1100
